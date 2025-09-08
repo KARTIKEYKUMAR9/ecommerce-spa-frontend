@@ -1,4 +1,3 @@
-// src/pages/Listing.jsx
 import React, { useEffect, useState } from "react";
 import API from "../api";
 
@@ -9,21 +8,19 @@ export default function Listing() {
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(2000);
   const [loading, setLoading] = useState(false);
-  const [addingId, setAddingId] = useState(null); // id of item currently being added
+  const [addingId, setAddingId] = useState(null);
 
-  // Fetch categories dynamically (optional endpoint /items/categories)
   const fetchCategories = async () => {
     try {
       const res = await API.get("/items/categories");
-      if (Array.isArray(res.data)) setCategories(res.data);
+      if (Array.isArray(res.data)) {
+        setCategories(res.data);
+      } else {
+        setCategories(["Electronics", "Clothing", "Footwear", "Accessories"]);
+      }
     } catch (err) {
-      // If categories endpoint is not available, fall back to a sensible default
-      setCategories([
-        "Electronics",
-        "Clothing",
-        "Footwear",
-        "Accessories",
-      ]);
+      console.warn("Falling back to default categories", err);
+      setCategories(["Electronics", "Clothing", "Footwear", "Accessories"]);
     }
   };
 
@@ -47,18 +44,13 @@ export default function Listing() {
 
   useEffect(() => {
     fetchCategories();
-    // initial fetch
     fetchItems();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // refetch when filters change
   useEffect(() => {
     fetchItems();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, minPrice, maxPrice]);
 
-  // merge item into localStorage cart (increment quantity if exists)
   const mergeLocalCart = (item) => {
     try {
       const raw = localStorage.getItem("cart");
@@ -69,7 +61,6 @@ export default function Listing() {
       if (idx >= 0) {
         cart[idx].quantity = (cart[idx].quantity || 1) + 1;
       } else {
-        // store minimal fields to keep cart small
         cart.push({
           _id: item._id,
           name: item.name,
@@ -80,7 +71,6 @@ export default function Listing() {
         });
       }
       localStorage.setItem("cart", JSON.stringify(cart));
-      // notify other parts of the app (Navbar could listen to this)
       window.dispatchEvent(
         new CustomEvent("cartUpdated", { detail: { count: cart.length } })
       );
@@ -94,15 +84,12 @@ export default function Listing() {
   const addToCart = async (item) => {
     setAddingId(item._id);
     try {
-      // Try backend first (will work for logged-in users)
       const res = await API.post("/cart/add", {
         itemId: item._id,
         quantity: 1,
       });
 
-      // If backend returns updated cart array (common pattern), persist locally too
       if (res?.data) {
-        // backend may return { cart: [...] } or an array directly
         if (Array.isArray(res.data.cart)) {
           localStorage.setItem("cart", JSON.stringify(res.data.cart));
           window.dispatchEvent(
@@ -118,11 +105,9 @@ export default function Listing() {
             })
           );
         } else {
-          // fallback: merge single item locally
           mergeLocalCart(item);
         }
       } else {
-        // fallback
         mergeLocalCart(item);
       }
 
@@ -227,7 +212,6 @@ export default function Listing() {
                 alt={item.name}
                 className="w-full h-40 object-cover rounded-md mb-3"
                 onError={(e) => {
-                  // fallback image if URL invalid
                   e.currentTarget.src =
                     "https://via.placeholder.com/300x300?text=No+Image";
                 }}
